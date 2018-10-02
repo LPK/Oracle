@@ -1,0 +1,41 @@
+select 
+   a.tablespace_name, 
+   a.file_name, 
+   ceil( (nvl(hwm,1)*8192)/1024/1024 ) "Mo"
+from dba_data_files a,
+     ( select file_id, max(block_id+blocks-1) hwm
+       from dba_extents
+       group by file_id
+     ) b 
+where a.file_id = b.file_id(+)
+order by tablespace_name, file_name;
+
+select
+    a.owner,
+    a.table_name,
+    b.blocks                        alcblks,
+    round ((b.blocks * (select value
+   	     from   v$parameter
+   	     where name = 'db_block_size') / 1048576), 2) alcblksMB,
+    a.blocks                        usdblks,
+    round ((a.blocks * (select value
+   	     from   v$parameter
+   	     where name = 'db_block_size') / 1048576), 2) usdblksMB,
+    (b.blocks-a.empty_blocks-1)     hgwtr,
+    round (((b.blocks-a.empty_blocks-1) * (select value
+   	     from   v$parameter
+   	     where name = 'db_block_size') / 1048576), 2) hgwtrMB
+from
+    dba_tables a,
+    dba_segments b
+    
+where
+    a.table_name=b.segment_name
+    and a.owner=b.owner
+    and a.owner not in('SYS','SYSTEM')
+    and a.blocks <> (b.blocks-a.empty_blocks-1)
+    and a.owner like upper('&owner')||'%'
+    and a.table_name like upper('&table_name')||'%'
+order by 1,2;
+
+SELECT * FROM v$parameter WHERE name = 'db_block_size';

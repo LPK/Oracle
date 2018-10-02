@@ -1,0 +1,32 @@
+CREATE OR REPLACE PROCEDURE proc_plsql_line
+    IS
+    BEGIN
+       RAISE VALUE_ERROR;
+    EXCEPTION
+       WHEN VALUE_ERROR
+       THEN
+          DBMS_OUTPUT.put_line ( 'Error raised in: '|| $$plsql_unit ||' at line ' || $$plsql_line || ' - '||sqlerrm);
+   END;
+/
+And
+
+CREATE OR REPLACE PROCEDURE proc_backtrace
+    IS
+    BEGIN
+       RAISE VALUE_ERROR;
+    EXCEPTION
+       WHEN VALUE_ERROR
+       THEN
+          DBMS_OUTPUT.put_line ( 'Error raised: '|| DBMS_UTILITY.FORMAT_ERROR_BACKTRACE || ' - '||sqlerrm);
+   END;
+/
+Execution:
+
+exec proc_plsql_line;
+
+Error raised in: PROC_PLSQL_LINE at line 8 - ORA-06502: PL/SQL: numeric or value error
+
+
+exec proc_backtrace;
+
+Error raised: ORA-06512: at "PROC_BACKTRACE", line 4 - ORA-06502: PL/SQL: numeric or value error

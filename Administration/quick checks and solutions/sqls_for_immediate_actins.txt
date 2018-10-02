@@ -1,0 +1,117 @@
+++++++++++++++++++++++++ Server start/down  ++++++++++++++++++++++++++
+shutdown immediate
+
+sqlplus sys/oracle as sysdba
+startup mount
+Alter Database noarchivelog;
+Alter Database Open;
+
+lsnrctl start/stop
+lsnrctl status
+
+select log_mode from v$database;  -- check current log mode
+select instance_name from v$instance;  -- get the current isntence up (Service)
+
+find the alert log 
+==========================================
+find / -name alert_sandi.log 2>/dev/null
+
+++++++++++++++++++++++++ Active Running Sessions  ++++++++++++++++++++++++++
+ 
+select
+  INST_ID
+  ,SID
+  ,SERIAL#
+  ,USERNAME
+  ,TERMINAL
+  ,round(LAST_CALL_ET/60) "in Mins"
+  ,SQL_ID
+  ,OSUSER
+   ,to_char(LOGON_TIME,'DD-MON-YYYY HH24:MI') "LOGON_TIME"
+   ,status
+from
+   gv$session
+where
+   username in ('VAADMIN','SYSTEM','CMSADMIN')
+and
+    status='ACTIVE'  ; -- 81t3tbcn5u18w
+ -------------------------------------------------------------------
+ 
+    select * from V$SQLTEXT where sql_id ='aas2bn9kzu415';
+	
+	--------Check Locks---------------------------------------------------
+	
+	select
+(select username || ' - ' || osuser from v$session where sid=a.sid) blocker,
+a.sid || ', ' ||
+(select serial# from v$session where sid=a.sid) sid_serial,
+' is blocking ',
+(select username || ' - ' || osuser from v$session where sid=b.sid) blockee,
+b.sid || ', ' ||
+(select serial# from v$session where sid=b.sid) sid_serial
+from v$lock a, v$lock b
+where a.block = 1
+and b.request > 0
+and a.id1 = b.id1
+and a.id2 = b.id2;
+
+ 
+ -------------------------------------------------------------------
+ 
+       1        287      20087 SYSTEM             UNKNOWN         432.066667 832skc35xkzvk oracle             01-JUN-2018 05:18    ACTIVE
+   1        308      33353 CMSADMIN           UNKNOWN         457.333333 cy15yp7wyc1w4 oracle             01-JUN-2018 05:15    ACTIVE
+
+	   
+ --disconnect if blocking sessions are not there 
+  ALTER SYSTEM DISCONNECT SESSION '308,33353' IMMEDIATE;
+  
+  --take time to roll back
+ ALTER SYSTEM KILL SESSION '37, 19202';
+	
++++++++++++++++++++++++++++BLOCKING SESSION++++++++++++++++++++++++++++
+ 
+ 
+ select
+    inst_id
+    , username
+    , sid
+    , serial#
+    , blocking_session
+    ,wait_class,sql_id
+    , seconds_in_wait
+ from
+     gv$session
+  where
+     blocking_session is not NULL
+  order
+by blocking_session;
+ 
+ +++++++++++++++++++++++++++++++++++++++PHV ACTIVE+++++++++++++++++++++++++
+ 
+select a.INST_ID,a.sid,a.SERIAL#,a.sql_id,c.PLAN_HASH_VALUE,b.EXECUTIONS,b.DISK_READS,b.BUFFER_GETS,b.ROWS_PROCESSED,a.LAST_CALL_ET/3600 as Run_time_so_far,event
+  from gv$session a,gv$sqlarea b, gv$sqlstats c
+  where a.sql_id=b.sql_id
+  and b.sql_id=c.sql_id
+  and status ='ACTIVE'
+and a.sql_id=nvl('&sql_id','%') -- 2458118796
+ 
+ 
+++++++++++++++++++++++++++++++++++++++++++++PHV PAST +++++++++++++++++++++++++++
+ 
+select ss.instance_number node, begin_interval_time, sql_id, plan_hash_value,
+nvl(executions_delta,0) execs,
+(elapsed_time_delta/decode(nvl(executions_delta,0),0,1,executions_delta))/1000000 avg_etime,
+(buffer_gets_delta/decode(nvl(buffer_gets_delta,0),0,1,executions_delta)) avg_lio, SQL_PROFILE
+from DBA_HIST_SQLSTAT S, DBA_HIST_SNAPSHOT SS
+where sql_id = nvl('&sql_id','23f7vt8kgw5n2')
+and ss.snap_id = S.snap_id
+and ss.instance_number = S.instance_number
+and executions_delta > 0
+order by 2;
+ /*
+ desc SYS.dba_objects 
+ select * from SYS.dba_objects where 
+ */
+ 
+ 
+ 

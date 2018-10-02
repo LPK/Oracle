@@ -1,0 +1,79 @@
+ begin
+ 
+  exec dbms_scheduler.disable('CMSADMIN.CMS_FR_PROCESS');
+  
+  DBMS_STATS.GATHER_TABLE_STATS (ownname => 'CMSADMIN' , tabname => 'V_FIRST_RECHARGETEMP',cascade => true, estimate_percent => 10,method_opt=>'for all indexed columns size 1', granularity => 'ALL', degree => 5);
+  
+  DBMS_STATS.GATHER_TABLE_STATS (ownname => 'VAADMIN' , tabname => 'V_FIRST_RECHARGETEMP',cascade => true, estimate_percent => 10,method_opt=>'for all indexed columns size 1', granularity => 'ALL', degree => 5);
+ 
+ 
+ alter index VAADMIN.IX_V_FIRST_RECHARGETEMP rebuild;
+ alter index VAADMIN.PK_V_FIRST_RECHARGETEMP rebuild;
+ alter index VAADMIN.IDX_V_FIRST_RECHARGETEMP_DATE  rebuild;
+ 
+ alter index CMSADMIN.PK_V_FIRST_RECHARGETEMP rebuild;
+  alter index CMSADMIN.IX_V_FIRST_RECHARGETEMP rebuild;
+ alter index CMSADMIN.IDX_V_FIRST_RECHARGETEMP_DATE rebuild;
+ 
+  begin
+  DBMS_STATS.GATHER_TABLE_STATS (ownname => 'VAADMIN' , tabname => 'VoucherExt',cascade => true, estimate_percent => 10,method_opt=>'for all indexed columns size 1', granularity => 'ALL', degree => 5);
+ end;
+ ===============================================================================
+   
+alter index VAADMIN.IX_TXNCARDSTATUS rebuild;
+alter index VAADMIN.IX_VOUCHEREXT_BURNDATE rebuild;
+alter index VAADMIN.PK_TXNCARDSTATUS rebuild;
+alter index VAADMIN.IX_ISBURN rebuild;
+ end;
+ 
+  ===============================================================================
+ select table_name, stale_stats, last_analyzed 
+from dba_tab_statistics 
+where stale_stats='YES'
+
+select    
+   referenced_name 
+from 
+   dba_dependencies
+where 
+   name= 'MONTHLYDEALERSAFCOMMISSIONCALC'
+and 
+   owner = 'CMSADMIN'
+   AND REFERENCED_TYPE = 'TABLE'
+order by  referenced_name
+ 
+ ===============================================================================
+select 
+   referenced_owner, 
+   referenced_name, 
+   referenced_type
+from 
+   dba_dependencies
+where 
+   name= 'MONTHLYDEALERSAFCOMMISSIONCALC'
+and 
+   owner = 'CMSADMIN'
+   AND REFERENCED_TYPE = 'TABLE'
+order by 
+   referenced_owner, referenced_name, referenced_type;
+   
+   
+   
+   ==============================================================================
+   
+select 
+   referenced_owner, 
+   referenced_name, 
+   SS.PARTITION_NAME,
+   ss.NUM_ROWS,ss.BLOCKS ,ss.EMPTY_BLOCKS,ss.LAST_ANALYZED,ss.STALE_STATS
+from 
+   dba_dependencies s
+inner join dba_tab_statistics ss on s.owner = ss.OWNER and s.referenced_name = ss.TABLE_NAME
+where 
+   name= 'GENRETAILERREALTIMECLAWBACK'
+and 
+   s.owner = 'CMSADMIN'
+   AND s.REFERENCED_TYPE = 'TABLE'
+order by 
+   referenced_owner, referenced_name, referenced_type;
+   

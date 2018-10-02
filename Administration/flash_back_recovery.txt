@@ -1,0 +1,15 @@
+show parameter undo  - check undo retaintion 
+
+expdp vaadmin/12345 tables=SRTABLE directory=EXPDPDIR dumpfile=VAADMIN_SRTABLE%U.dmp logfile=impdpVAADMIN_.log   -- expdp current table to safe side
+
+
+select count(*) FROM srtable as of timestamp to_timestamp('10-MAY-18 11:12:35','DD-MON-YY HH:MI:SS');
+ 
+ --enable row movement
+alter table srtable enable row movement;
+
+--bring flashback data
+flashback table srtable to timestamp to_timestamp('10-MAY-18 11:12:35','DD-MON-YY HH:MI:SS');
+
+- if not ok roll back to original data set
+impdp vaadmin/12345 tables=SRTABLE directory=EXPDPDIR dumpfile=VAADMIN_SRTABLENew%U.dmp logfile=impdpVAADMIN_NewImpdp.log

@@ -1,0 +1,36 @@
+-- add script to file 
+-- use schema name for objects
+
+explain plan for    
+SELECT  *
+        FROM Telco.TxnInvoice I
+          INNER JOIN Telco.TxnInvoiceLine IL ON I.PUID = IL.TxnInvoiceUID AND I.SiteUID = IL.TxnInvoice_SiteUID 
+          INNER JOIN Telco.Outlet O ON I.OutletUID = O.PUID
+          INNER JOIN Telco.Item T ON IL.ItemUID = T.PUID
+          INNER JOIN Telco.Distributor D ON I.DistributorUID = D.PUID
+          INNER JOIN Telco.Agent A ON I.AgentUID = A.PUID
+          INNER JOIN Telco.Employee E ON A.EmployeeUID = E.PUID
+          LEFT OUTER JOIN Telco.Area AR ON D.BusinessAreaUID = AR.PUID           
+        ORDER BY D.Name;
+		
+--@selectQuerynormal.sql
+
+
+
+SET ECHO        OFF
+SET FEEDBACK    6
+SET HEADING     ON
+SET LINESIZE    194
+SET PAGESIZE    50000
+SET TERMOUT     ON
+SET TIMING      OFF
+SET TRIMOUT     ON
+SET TRIMSPOOL   ON
+SET VERIFY      OFF
+CLEAR COLUMNS
+CLEAR BREAKS
+CLEAR COMPUTES
+
+ select * from table(dbms_xplan.display);
+ 
+ 

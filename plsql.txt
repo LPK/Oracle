@@ -1,0 +1,46 @@
+-- Numeric FOR loop --
+set serveroutput on -->> do not use in TOAD --
+DECLARE
+  k NUMBER:= 0;
+BEGIN
+  FOR i IN 1..10 LOOP
+    k:= k+1;
+    dbms_output.put_line(i||' '||k);
+ END LOOP;
+END;
+/
+
+-- Cursor FOR loop --
+set serveroutput on
+DECLARE
+   CURSOR c1 IS SELECT * FROM scott.emp;
+   i NUMBER:= 0;
+BEGIN
+  FOR e_rec IN c1 LOOP
+  i:= i+1;
+    dbms_output.put_line(i||chr(9)||e_rec.empno||chr(9)||e_rec.ename);
+  END LOOP;
+END;
+/
+
+-- SQL example to generate 10 rows --
+SELECT 1 + LEVEL-1 idx
+  FROM dual
+CONNECT BY LEVEL <= 10
+/
+
+
+----------------dates for the given range --------------
+declare
+start_date date := to_date('01-JUN-2018','DD-MON-YYYY');
+end_date   date := to_date('22-AUG-2018','DD-MON-YYYY');
+Begin
+loop
+   start_date := start_date +1;
+   if start_date < end_date then
+      dbms_output.put_line(start_date);
+   else
+      exit;
+   end if;
+end loop;
+end;

@@ -1,0 +1,56 @@
+select count(1) from sim where trunc(ACTIVATIONDATE,'MONTH') = '01-MAR-17';
+ 
+
+--Create Month partition -- range partitions 
+CREATE TABLE STARRETAILERSIM_ARCHIVE 
+   (	
+     ACTIVATEDISTRIBUTORUID  NUMBER(10,0), 
+     ACT_DATE  DATE, 
+     ACT_COUNT  NUMBER(10,0), 
+     TLRNUMBER  VARCHAR2(20 BYTE), 
+     NAME  VARCHAR2(200 BYTE)
+   )
+ PARTITION BY RANGE (ACT_DATE) 
+(  
+   PARTITION Star_Ret_data_p0 VALUES LESS THAN (TO_DATE('01-07-2017', 'DD-MM-YYYY')),
+   PARTITION Star_Ret_data_p1 VALUES LESS THAN (TO_DATE('01-08-2017', 'DD-MM-YYYY')) 
+); 
+
+--Convert to interval part
+alter table STARRETAILERSIM_ARCHIVE set INTERVAL(NUMTOYMINTERVAL(1, 'MONTH'));
+
+--convert back to range partition
+alter table STARRETAILERSIM_ARCHIVE set INTERVAL();
+
+--alter existing partition size in interval partition
+alter table pos_data set INTERVAL(NUMTOYMINTERVAL(3, 'MONTH'));
+
+--check partiton
+SELECT 
+   TABLE_NAME, PARTITION_NAME, PARTITION_POSITION, HIGH_VALUE 
+FROM 
+     DBA_TAB_PARTITIONS 
+WHERE 
+   TABLE_NAME='STARRETAILERSIM_ARCHIVE'
+ORDER BY 
+   PARTITION_NAME;
+   
+--change the partition table space 
+alter table STARRETAILERSIM_ARCHIVE set STORE IN(tablespace1, tablespace2, tablespace3);
+
+
+---Can be created in one script 
+CREATE TABLE STARRETAILERSIM_ARCHIVE 
+   (	
+     ACTIVATEDISTRIBUTORUID  NUMBER(10,0), 
+     ACT_DATE  DATE, 
+     ACT_COUNT  NUMBER(10,0), 
+     TLRNUMBER  VARCHAR2(20 BYTE), 
+     NAME  VARCHAR2(200 BYTE)
+   )
+   PARTITION BY RANGE (time_id)
+   INTERVAL(NUMTOYMINTERVAL(1, 'MONTH'))
+   (
+    PARTITION Star_Ret_data_p0 VALUES LESS THAN (TO_DATE('01-07-2017', 'DD-MM-YYYY')),
+    PARTITION Star_Ret_data_p1 VALUES LESS THAN (TO_DATE('01-08-2017', 'DD-MM-YYYY')) 
+   ); 

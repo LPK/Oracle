@@ -1,0 +1,82 @@
+rman target /
+------------------------------------------------------------------------------------------------------------------------------------------
+show all ;
+------------------------------------------------------------------------------------------------------------------------------------------
+Before 
+
+using target database control file instead of recovery catalog
+RMAN configuration parameters for database with db_unique_name SANDI are:
+CONFIGURE RETENTION POLICY TO REDUNDANCY 2;
+CONFIGURE BACKUP OPTIMIZATION ON;
+CONFIGURE DEFAULT DEVICE TYPE TO DISK; # default
+CONFIGURE CONTROLFILE AUTOBACKUP ON;
+CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '/backup/ctlback                                                                                        /ctl_sandiqa%F';
+CONFIGURE DEVICE TYPE DISK PARALLELISM 1 BACKUP TYPE TO BACKUPSET; # default
+CONFIGURE DATAFILE BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE ARCHIVELOG BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE MAXSETSIZE TO UNLIMITED; # default
+CONFIGURE ENCRYPTION FOR DATABASE OFF; # default
+CONFIGURE ENCRYPTION ALGORITHM 'AES128'; # default
+CONFIGURE COMPRESSION ALGORITHM 'BASIC' AS OF RELEASE 'DEFAULT' OPTIMIZE FOR LOA                                                                                        D TRUE ; # default
+CONFIGURE RMAN OUTPUT TO KEEP FOR 7 DAYS; # default
+CONFIGURE ARCHIVELOG DELETION POLICY TO NONE;
+CONFIGURE SNAPSHOT CONTROLFILE NAME TO '/oracle/app/oracle/product/12.1.0/dbhome                                                                                        _1/dbs/snapcf_sandiqa.f'; # default
+
+
+CONFIGURE CHANNEL DEVICE TYPE DISK FORMAT '/backup/rman/full_%u_%s_%p';
+CONFIGURE CHANNEL DEVICE TYPE DISK FORMAT '/arch/rman_back/full_%u_%s_%p';
+------------------------------------------------------------------------------------------------------------------------------------------
+After 
+
+RMAN configuration parameters for database with db_unique_name SANDI are:
+CONFIGURE RETENTION POLICY TO REDUNDANCY 2;
+CONFIGURE BACKUP OPTIMIZATION ON;
+CONFIGURE DEFAULT DEVICE TYPE TO DISK; # default
+CONFIGURE CONTROLFILE AUTOBACKUP ON;
+CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '/backup/ctlback/ctl_sandiqa%F';
+CONFIGURE DEVICE TYPE DISK PARALLELISM 1 BACKUP TYPE TO BACKUPSET; # default
+CONFIGURE DATAFILE BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE ARCHIVELOG BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE CHANNEL DEVICE TYPE DISK FORMAT   "/backup/rman/full_%u_%s_%p" MAXPIECESIZE 2048 M;
+CONFIGURE MAXSETSIZE TO UNLIMITED; # default
+CONFIGURE ENCRYPTION FOR DATABASE OFF; # default
+CONFIGURE ENCRYPTION ALGORITHM 'AES128'; # default
+CONFIGURE COMPRESSION ALGORITHM 'BASIC' AS OF RELEASE 'DEFAULT' OPTIMIZE FOR LOAD TRUE ; # default
+CONFIGURE RMAN OUTPUT TO KEEP FOR 7 DAYS; # default
+CONFIGURE ARCHIVELOG DELETION POLICY TO NONE;
+CONFIGURE SNAPSHOT CONTROLFILE NAME TO '/oracle/app/oracle/product/12.1.0/dbhome_1/dbs/snapcf_sandiqa.f'; # default
+
+
+[oracle@Ora backup]$ mkdir rman
+[oracle@Ora backup]$ chmod rman 775
+
+drwxr-xr-x. 2 oracle oinstall 4.0K Aug  1  2017 ctlback
+drwxrwxr-x  2 oracle oinstall 4.0K Sep 13 09:47 rman
+
+-----------------------------------------------------------------------image of complet database -- cannot be right to tapes ---------------------------------------------------------------------
+BACKUP AS COPY DATABASE;
+
+
+-----------------------------------------------------------------------to check the status of running rman process---------------------------------------------------------------------
+select sid, row_type, operation, status, to_char(start_time,'dd-mm-yyyy hh24:mi:ss') start_time, to_char(end_time,'dd-mm-yyyy hh24:mi:ss') end_time 
+from
+ v$rman_status;
+ /
+ 
+ ------------------------------------------------kill the running rman ---------------------------------------------------------------------
+ You can identify the Oracle session ID for an RMAN channel by looking in the RMAN log for messages with the format shown in the following example:
+
+channel ch1: sid=15 devtype=SBT_TAPE
+
+The sid and devtype are displayed for each allocated channel. Note that the Oracle sid is different from the operating system process ID. You can kill the session using a SQL ALTER SYSTEM KILL SESSION statement.
+
+ALTER SYSTEM KILL SESSION takes two arguments, the sid printed in the RMAN message and a serial number, both of which can be obtained by querying V$SESSION. For example, run the following statement, where sid_in_rman_output is the number from the RMAN message:
+
+SELECT SERIAL# FROM V$SESSION WHERE SID=sid_in_rman_output;
+
+Then, run the following statement, substituting the sid_in_rman_output and serial number obtained from the query:
+
+ALTER SYSTEM KILL SESSION 'sid_in_rman_output,serial#';
+
+ 
+------------------------------------------------------------------------------------------------------------------------------------------

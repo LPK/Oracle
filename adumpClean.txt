@@ -1,0 +1,4 @@
+find /oracle/app/oracle/admin/sandiqa/adump -name "*.aud" -mtime +40 -exec rm -f {} \\;
+
+
+find /oracle/admin/sandi/adump -name "*.aud" -mtime +40 -exec rm -f {} \;

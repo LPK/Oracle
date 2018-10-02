@@ -1,0 +1,155 @@
+
++++++++++++++++++++++++++++++++++++++ Row Count comparision between Actual and Optimizor++++++++++++++++++++++++++
+ 
+DECLARE
+  TYPE cur_type IS REF CURSOR;
+  TYPE cur_type1 IS REF CURSOR;
+  CURSOR tabinfo_cur IS
+         select distinct OBJECT_OWNER, OBJECT_NAME
+           from DBA_HIST_SQL_PLAN where sql_id='&sql_id'
+           AND object_type='TABLE'
+           order by 1, 2;
+       count_cur cur_type;
+       count_cur1 cur_type1;
+       cnt number;
+       l_cur_string VARCHAR2(228);
+       l_cur_string1 VARCHAR2(228);
+       l_tabcount varchar2(30);
+       l_dictount varchar2(30);
+  BEGIN
+   dbms_output.put_line(chr(10));
+   dbms_output.put_line( rpad('NO',4)||rpad('<OWNER>.<TABLE NAME>' ,50,'-')||'> '|| rpad('ACTUAL ROWS',15,'-')||'> '||'DICT ROWS');
+   cnt := 0;
+      FOR client IN tabinfo_cur LOOP
+           l_cur_string := 'select count(*) from '||client.OBJECT_OWNER||'.'||client.OBJECT_NAME;
+           OPEN count_cur FOR l_cur_string;
+           l_cur_string1 := 'select num_rows from dba_tables where owner'||q'[=']'||client.OBJECT_OWNER||q'[' and table_name=']'||client.OBJECT_NAME||q'[']';
+           OPEN count_cur1 FOR l_cur_string1;
+           cnt := cnt + 1;
+          LOOP
+               FETCH count_cur INTO l_tabcount;
+               EXIT WHEN count_cur%NOTFOUND;
+            LOOP
+               FETCH count_cur1 INTO l_dictount;
+               EXIT WHEN count_cur1%NOTFOUND;
+               dbms_output.put_line( rpad(cnt,4)||rpad(client.OBJECT_OWNER||'.'||client.OBJECT_NAME ,50,'-')||'> '|| rpad(l_tabcount,15,'-')||'> '||l_dictount);
+           END LOOP;
+           CLOSE count_cur1;
+           END LOOP;
+           CLOSE count_cur;
+       END LOOP;
+END;
+ 
+++++++++++++++++++++++Execution PLAN AWR   ++++++++++++++++++++++++++
+ 
+SELECT rpad(sys_context('USERENV', 'INSTANCE_NAME'), 17) current_instance FROM dual
+ 
+ 
++++++++++++++++++++++++++ Execution Plan for SQL_ID in Cursor Cache++++++++++++++++++++
+ 
+ 
+BEGIN DBMS_OUTPUT.GET_LINES(:LINES, :NUMLINES); END;
+ 
+ 
+ 
++++++++++++++++++++++++++Gather Stats +++++++++++++++++++++++
+ 
+select ' exec dbms_stats.gather_table_stats(OWNNAME =>'''||object_owner||''' , TABNAME => '''||OBJECT_NAME||''' , METHOD_OPT => ''FOR ALL INDEXED COLUMNS SIZE AUTO'', CASCADE => TRUE, DEGREE => 20 , granularity => ''ALL''); 'Gather_STAT
+from gv$sql_plan a,dba_tab_statistics b where a.object_name=b.table_name and b.object_type='TABLE' and a.sql_id='&sql_id' and b.STALE_STATS='YES' and b.stattype_locked is null;
+ 
+++++++++++++++++++++++++++++++++++++++ Locked Objects++++++++++++++++++++++++++
+ 
+ 
+select    oracle_username || ' (' || s.osuser || ')' username
+,               s.sid || ',' || s.serial#||',@'||s.inst_id  sess_id
+,               owner || '.' ||   object_name object
+,               object_type
+,               decode(               l.block
+                 ,               0, 'Not Blocking'
+                 ,               1, 'Blocking'
+                 ,               2, 'Global') status
+,               decode(v.locked_mode
+                  ,               0, 'None'
+                  ,               1, 'Null'
+                  ,               2, 'Row-S (SS)'
+                  ,               3, 'Row-X (SX)'
+                  ,               4, 'Share'
+                  ,               5, 'S/Row-X (SSX)'
+                  ,               6, 'Exclusive', TO_CHAR(lmode)) mode_held
+  from      gv$locked_object v
+  ,               dba_objects d
+  ,               gv$lock l
+  ,               gv$session s
+  where   v.object_id = d.object_id
+  and        v.object_id = l.id1
+  and        v.session_id = s.sid
+  order by oracle_username
+,               session_id
+ 
+
+ 
+
+ 
+++++++++++++++++++++++++++++STALE STATS ++++++++++++++++++++++++++++
+
+ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => 'VAADMIN' , tabname => 'V_FIRST_RECHARGETEMP',cascade => true, estimate_percent => 10,method_opt=>'for all indexed columns size 1', granularity => 'ALL', degree => 5);
+ 
+ ALTER SYSTEM DISCONNECT SESSION '304,2269' IMMEDIATE;
+ -- 
+ -- crete awr 
+ 
+select
+     distinct(OBJECT_OWNER||'.'||OBJECT_NAME) FQ_NAME
+     , a.sql_id
+     , object_owner
+     ,b.object_type
+     , OBJECT_NAME,
+     b.LAST_ANALYZED,
+     b.num_rows,
+     b.STALE_STATS
+     ,b.stattype_locked
+  from
+     gv$sql_plan a,
+     dba_tab_statistics b
+  where
+     a.object_name=b.table_name
+     and b.object_type='TABLE'
+  and a.objecT_owner=b.owner
+   and a.sql_id='&sql_id'
+   
+   
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+SELECT
+   owner, 
+   table_name, 
+   TRUNC(sum(bytes)/1024/1024/1024) GB,
+   ROUND( ratio_to_report( sum(bytes) ) over () * 100) Percent
+FROM
+(SELECT segment_name table_name, owner, bytes
+ FROM dba_segments
+ WHERE segment_type IN ('TABLE', 'TABLE PARTITION', 'TABLE SUBPARTITION')
+ UNION ALL
+ SELECT i.table_name, i.owner, s.bytes
+ FROM dba_indexes i, dba_segments s
+ WHERE s.segment_name = i.index_name
+ AND   s.owner = i.owner
+ AND   s.segment_type IN ('INDEX', 'INDEX PARTITION', 'INDEX SUBPARTITION')
+ UNION ALL
+ SELECT l.table_name, l.owner, s.bytes
+ FROM dba_lobs l, dba_segments s
+ WHERE s.segment_name = l.segment_name
+ AND   s.owner = l.owner
+ AND   s.segment_type IN ('LOBSEGMENT', 'LOB PARTITION')
+ UNION ALL
+ SELECT l.table_name, l.owner, s.bytes
+ FROM dba_lobs l, dba_segments s
+ WHERE s.segment_name = l.index_name
+ AND   s.owner = l.owner
+ AND   s.segment_type = 'LOBINDEX')
+WHERE owner in UPPER('&owner')
+GROUP BY table_name, owner
+--HAVING SUM(bytes)/1024/1024 > 10  /* Ignore really small tables */
+--ORDER BY SUM(bytes) desc
+;
+ 
+ 

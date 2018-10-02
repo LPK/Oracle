@@ -1,0 +1,49 @@
+--------------------find a directory ------------------
+
+find /dir/path/look/up -name "dir-name-here"
+
+---------------------get the file size ---------------------
+
+du -sh *
+
+-----------------get the file count in folder ---------------------
+
+ls | wc -l
+
+---------------get the file list with all details -------------------
+
+ls -ltrh 
+
+--------remove files from path ----------------------------------
+find /oracle/app/oracle/admin/sandiqa/adump -name "*.aud" -mtime +40 -exec rm -f {} \\;
+
+
+find /oracle/admin/sandi/adump -name "*.aud" -mtime +40 -exec rm -f {} \;
+
+---------scp to another locattion -----------------------------------
+Copy one single local file to a remote destination
+
+scp /path/to/source-file user@host:/path/to/destination-folder/
+So, if you wan to copy the file /home/user/table.csv to a remote host named host.example.com and copy there to jane's home folder, use this command.
+
+scp /home/user/table.csv jane@host.example.com:/home/jane/
+Copy one single file from a remote server to your current local server
+
+scp user@host:/path/to/source-file /path/to/destination-folder
+Let's say now you want to copy the same file from jane's home folder in host.example.com to your local home folder.
+
+scp jane@host.example.com:/home/jane/table.csv /home/user/
+
+-----------------Give Permission TO folder to write 
+
+mkdir PreviousBackups
+su
+chmod -R 775 PreviousBackups
+
+----------------------Move file from one location to another -------
+
+mv frompath topath
+
+-----------------------------------
+
+	

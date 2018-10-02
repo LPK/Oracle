@@ -1,0 +1,83 @@
+declare pd1 DATE ; pd2 DATE ;
+ begin 
+  
+ pd1 := '20-AUG-17';
+ pd2 := '31-AUG-17'; 
+ /*
+ -- truncate table i_recharge_trigger_LK;  
+    INSERT INTO i_recharge_trigger_LK(SERIAL_NUMBER, recharge_date_time)           
+           SELECT  a.SERIAL_NUMBER, a.recharge_date_time     
+           from epos2.mis_rtbs_rha_v@DMS2EPOS a
+           WHERE  a.recharge_date_time  >=  pd1 and  a.recharge_date_time  <=   pd2 and a.SERIAL_NUMBER  is not null;
+    COMMIT;
+ 
+  -- select count(1) from i_recharge_trigger_LK
+  --select * from i_recharge_trigger_LK
+*/
+   MERGE INTO VOUCHER V
+            USING 
+            (
+              SELECT DISTINCT SERIAL_NUMBER ,RECHARGE_DATE_TIME
+              FROM i_recharge_trigger_LK 
+            )I ON (I.SERIAL_NUMBER = V.STARTSERIALNUMBER)
+            WHEN MATCHED THEN
+            UPDATE
+            SET ACTIVATIONDATE = I.RECHARGE_DATE_TIME
+              , LASTMODIFIEDDATE = SYSDATE
+              , LASTMODIFIEDBY = 'ImpSC_AUG_20_31'||TRUNC(SYSDATE,'DDD')
+            WHERE V.ACTIVATIONDATE IS NULL;
+           COMMIT; 
+ 
+end;
+
+select count(1) from VOUCHER WHERE ACTIVATIONDATE is null ; -- 40946082  -- 34112082
+
+select min (RECHARGE_DATE_TIME),max(RECHARGE_DATE_TIME) from i_recharge_trigger_LK;
+
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSCAct_manual_'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_SEP_01_15'||TRUNC(SYSDATE,'DDD'); 
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_SEP_15_30'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_SEP_on15'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_SEP_on30'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_OCT_1_10'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_OCT_10_20'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_OCT_20_31'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_AUG_1_10'||TRUNC(SYSDATE,'DDD');
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_AUG_10_20'||TRUNC(SYSDATE,'DDD'); 
+select count(1) from VOUCHER WHERE LASTMODIFIEDBY = 'ImpSC_AUG_20_31'||TRUNC(SYSDATE,'DDD'); 
+select Max(ACTIVATIONDATE) from VOUCHER;
+
+select count(1) from i_recharge_trigger_LK; -- 1139279
+SELECT DISTINCT count(1)
+              FROM i_recharge_trigger_LK ;-- 1139279
+              
+----delete from  i_recharge_trigger_LK where serial_number = 'ETOPUP_20170823134902';
+--commit;
+desc i_recharge_trigger_LK
+
+SELECT  *    
+from epos2.mis_rtbs_rha_v@DMS2EPOS a
+where  a.recharge_date_time >= '16-SEP-17' and a.recharge_date_time < '17-SEP-17';
+           
+select * from voucher where STARTSERIALNUMBER = '34282292937';
+
+select I.SERIAL_NUMBER
+from 
+(
+  SELECT DISTINCT SERIAL_NUMBER ,RECHARGE_DATE_TIME
+  FROM i_recharge_trigger_LK 
+) I
+INNER JOIN VOUCHER V  ON (I.SERIAL_NUMBER = V.STARTSERIALNUMBER)
+GROUP BY I.SERIAL_NUMBER
+HAVING COUNT (I.SERIAL_NUMBER) > 1;
+
+select SERIAL_NUMBER, to_char(RECHARGE_DATE_TIME ,'DD-MON-YY HH:MI:SS')
+from i_recharge_trigger_LK where serial_number IN (select I.SERIAL_NUMBER
+from 
+(
+  SELECT DISTINCT SERIAL_NUMBER ,RECHARGE_DATE_TIME
+  FROM i_recharge_trigger_LK 
+) I
+INNER JOIN VOUCHER V  ON (I.SERIAL_NUMBER = V.STARTSERIALNUMBER)
+GROUP BY I.SERIAL_NUMBER
+HAVING COUNT (I.SERIAL_NUMBER) > 1);

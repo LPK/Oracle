@@ -1,0 +1,93 @@
+-------------------------to check the oracle instance 
+
+find / -type f -name 'init*.ora' 2>/dev/null
+
+cat /etc/oratab  -- to check with oracle instence are there and which one is start with  server start
+
+ps -ef | grep pmon
+
+----------------------------find oracle home 
+
+ var OH varchar2(200);
+ EXEC dbms_system.get_env('ORACLE_HOME', :OH) ;
+ PRINT OH
+
+echo $ORACLE_HOME
+
+--------------------------check oracle is running or not 
+$ ps -ef | grep pmon
+ora1024   262366        1   0   Mar 23      -  0:12 ora_pmon_mysid 
+ORACLE_SID is mysid 
+ 
+echo $ORACLE_SID
+
+ ps -ef | grep smon
+
+--------------server Uptime 
+ uptime; -- server up time
+
+ last;  --last logins
+
+ ----------------------set oracle environment variables 
+ 
+ .oraenv 
+ 
+ .  .bash_profile  -- not recomended bcz one machine can have many data bases 
+ 
+ ------------get the server info
+ grep -E '^Thread|^Core|^Socket|^CPU\('
+ 
+ cat /proc/cpuinfo
+ 
+ lscpu
+ 
+ -------------remove files in directory 
+
+ rm <filename>
+ 
+ --------------ping 
+ 
+ ping 10.20.10.25
+ 
+ ---------------- mount nas
+ 
+ Determine if the cifs-utils utility is installed by running the following command:
+
+root@slnastest [~]# rpm -q cifs-utils
+
+ If cifs-utils is not installed, install the utility using the following command:
+
+root@slnastest [~]# yum install cifs-utils
+
+
+mkdir /local/mountpoint
+mount -t cifs //Hostname/Username -o username=username,password=password,rw,nounix,iocharset=utf8,file_mode=0644,dir_mode=0755 /mnt 
+
+Example:
+
+    root@slnastest [~]# mkdir /mnt/nas
+    root@slnastest [~]# mount -t cifs //nas05.service.softlayer.com/SL12345-1 -o username=SL12345-1,password=NASPASSWORD,rw,nounix,iocharset=utf8,file_mode=0644,dir_mode=0755 /mnt/nas
+    root@slnastest [~]# df -Th /mnt/nas/
+Filesystem    Type    Size  Used Avail Use% Mounted on
+    //nas05.service.softlayer.com/SL12345-1
+              cifs     54T   49T  5.3T  91% /mnt/nas
+			  
+			  
+	mount -v -t cifs //10.20.10.25/lesleyk -o username=oracle,password=oracle,rw,nounix,iocharset=utf8,file_mode=0777,dir_mode=0777 /mnt/nas
+	
+	
+	mount -t cifs -o username=sysadmin,password=2wsx@WSX,domain=192.168.111.112,dir_mode=0777,file_mode=0777 //192.168.111.112/BCPDump2,uid=500,gid=500 /BCPDump
+	
+	mount -t cifs -o username=axienta/lesleyk,password=4rfv$RFV,domain=10.20.10.25,dir_mode=0777,file_mode=0777 //10.20.10.25/lesleyk,uid=54321,gid=54321 /mnt/nas
+	
+	mount -t cifs -o username=lesleyk,password=4rfv$RFV,domain=axienta,dir_mode=0777,file_mode=0777 //10.20.10.25/CommonShare/oracle,uid=54321,gid=54321 /mnt/nas
+	
+#--------------------Host name config ----------------------------------------------------------------
+
+hostname   				---> to view the hostname of the  machine 
+hostname prod-server    ---> to change the hostname of the  machine 
+
+cat /etc/hosts     				---> to view the hosts file for name resolutions 
+ifconfig eth0 192.168.1.2  		---> to change ip address 
+
+vi /etc/hosts  			 ---> to change the host file 

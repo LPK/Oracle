@@ -1,0 +1,32 @@
+adrci >
+
+adrci > exit 
+adrci > show homes;
+adrci > set homepath 'path'
+
+adrci > show alert -tail (This displays the last portion of the alert log (the last 10 entries) in your terminal session.)
+		show alert -tail 50 (last 50 lines)
+		show alert -tail -f  (Live monitoring )
+		
+		show incident  
+		SHOW INCIDENT -MODE DETAIL -P "INCIDENT_ID=1681"
+		
+adrci > purge -age 1200 ( seconds)
+
+adrci > trace 
+
+
+
+Rman > connect target / 
+
+BACK up before delete  cannot recover db ( DR )
+
+RMAN>crosscheck archivelog all;
+RMAN>delete noprompt expired archivelog all;
+
+else 
+
+delete manually before 10 days 
+rman > delete archivelog until time ‘SYSDATE-10’;
+
+rman > delete noprompt archivelog until time ‘SYSDATE-10’; 

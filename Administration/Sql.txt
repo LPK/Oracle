@@ -1,0 +1,257 @@
+--get host name address
+SELECT UTL_INADDR.get_host_address from dual;
+
+SELECT UTL_INADDR.get_host_name('10.20.10.195') FROM dual;
+
+
+--data base start/stop 
+
+shutdown immediate
+
+sqlplus sys/oracle as sysdba
+startup mount
+Alter Database noarchivelog;
+Alter Database archivelog;
+Alter Database Open;
+
+lsnrctl start/stop
+lsnrctl status
+
+ls -latr /u01/app/oracle/product/<version>/xe/dbs
+
+
+SELECT INSTANCE_NAME, STATUS, DATABASE_STATUS FROM V$INSTANCE;
+
+--This error comes 
+SQL*Plus: Release 11.2.0.1.0 Production on Sat Feb 31 21:61:61 2014
+Copyright (c) 1982, 2014, Oracle.  All rights reserved.
+Enter user-name: oracle
+Enter password: 
+ERROR:
+ORA-01034: ORACLE not available
+ORA-27101: shared memory realm does not exist
+Linux-x86_64 Error: 2: No such file or directory
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+--modify the sql plus column with 
+
+sql>column column_name format a30
+sql>set linesize 300
+
+--frequent 
+select LOG_MODE,NAME,CREATED,OPEN_MODE from v$database;
+
+
+column USERNAME format a30
+column USER_ID format a30
+column PASSWORD format a30
+column ACCOUNT_STATUS format a30
+column LAST_LOGIN format a30
+select USERNAME,USER_ID,PASSWORD,ACCOUNT_STATUS,LAST_LOGIN from DBA_USERS;
+
+--check all the schemas
+SELECT username  FROM dba_users WHERE default_tablespace not in ('SYSTEM','SYSAUX')
+
+--create user 
+CREATE USER Telco IDENTIFIED BY Telco;
+GRANT CONNECT TO Telco;
+GRANT CONNECT, RESOURCE, DBA TO Telco;
+
+ALTER USER Telco DEFAULT TABLESPACE <tbs_name>
+ALTER USER <temuser> ACCOUNT LOCK;
+ALTER USER <temuser> ACCOUNT UNLOCK;
+
+
+GRANT UNLIMITED TABLESPACE TO Telco;
+GRANT CREATE SESSION TO Telco WITH ADMIN OPTION
+
+ALTER USER tempuser IDENTIFIED BY <new pw>;
+--to grant permission to table
+GRANT SELECT, INSERT, UPDATE, DELETE ON <tableName> TO Telco;
+
+--to check archive is applied 
+prd =  archive log list
+dr  =  select max(sequence#) from v$archived_log where applied='YES';
+
+
+---------------------------FInd last dml for table =------------------------------------------
+
+SELECT TABLE_OWNER, 
+   TABLE_NAME, 
+   INSERTS,
+   UPDATES,
+   DELETES,
+   TIMESTAMP 
+FROM  ALL_TAB_MODIFICATIONS
+WHERE TABLE_NAME like '%SIM%';
+
+ ----------------------------------------------------------------creating oracle users with previlages ----------------------------------------------------------------
+ 
+-- NEED TO RUN IN SYSDBA 
+  
+create user SP_USER identified by 123456;
+
+GRANT CONNECT TO SP_USER;
+
+GRANT CONNECT, RESOURCE TO SP_USER;
+
+--GRANT CREATE SESSION GRANT ANY PRIVILEGE TO books_admin;
+grant create session, select any table, select any dictionary to SP_USER;
+
+GRANT UNLIMITED TABLESPACE TO SP_USER;
+
+GRANT SELECT, INSERT, UPDATE  ON TELCO.AGENT TO SP_USER;
+
+ALTER USER SP_USER IDENTIFIED BY 123456;
+
+GRANT SELECT ON Telco.AGENT to SP_USER
+
+-------------------------------
+select username from dba_users; / All_USERS
+
+SELECT * FROM DBA_TAB_PRIVS where owner =<>; 
+
+
+--grant tables to user 
+BEGIN
+FOR x IN (SELECT * FROM user_tables)
+LOOP   
+ EXECUTE IMMEDIATE 'GRANT  SELECT,  INSERT  ON TELCO.' || x.table_name || ' TO SP_USER'; 
+END LOOP;
+END;
+
+--grat role to a user 
+CREATE ROLE ro_role;
+BEGIN
+  FOR x IN (SELECT * FROM dba_tables WHERE owner='SCHEMA_NAME')
+  LOOP
+    EXECUTE IMMEDIATE 'GRANT SELECT ON TELCOINS.' || x.table_name || 
+                                  ' TO ro_role';
+  END LOOP;
+END;
+GRANT ro_role TO SP_USER;
+
+GRANT SELECT ON TelcoINS.AGENT TO SP_USER2
+
+--Droping user -----------------------------
+DROP USER SP_USER2 CASCADE;
+
+select s.sid, s.serial#, s.status, p.spid 
+from v$session s, v$process p 
+where s.username = 'SP_USER2' 
+and p.addr (+) = s.paddr;
+
+
+alter system kill session '249,15646';
+
+--check that the user is not associated with any active jobs:
+select job from dba_jobs where log_user='SP_USER2';
+--- check that the user is not associated with any Streams replication queues:
+select 
+   queue_table, 
+   qid 
+from 
+   dba_queues 
+where owner='SP_USER2';
+
+select 
+   apply_name 
+from 
+   dba_apply 
+where 
+   queue_owner='SP_USER2';  
+
+select 
+   capture_name, 
+   queue_name 
+from 
+   dba_capture 
+where 
+   queue_owner='SP_USER2'; 
+
+select 
+   propagation_name 
+from 
+   dba_propagation 
+where 
+   source_queue_owner='SP_USER2' 
+or 
+   destination_queue_owner='SP_USER2'; 
+
+ -----------------------------
+ 
+ 
+create or replace
+procedure createReadOnlyUser(p_owner in varchar2, p_readonly in varchar2) 
+AUTHID CURRENT_USER is
+BEGIN
+    execute immediate 'create user '||p_readonly||' identified by '||p_readonly;
+    execute immediate 'grant create session to '||p_readonly;
+    execute immediate 'grant select any dictionary to '||p_readonly;
+    execute immediate 'grant create synonym to '||p_readonly;
+
+   FOR R IN (SELECT owner, object_name from all_objects where object_type in('TABLE', 'VIEW') and owner=p_owner) LOOP
+      execute immediate 'grant select on '||p_owner||'.'||R.object_name||' to '||p_readonly;
+   END LOOP;
+   FOR R IN (SELECT owner, object_name from all_objects where object_type in('FUNCTION', 'PROCEDURE') and owner=p_owner) LOOP
+      execute immediate 'grant execute on '||p_owner||'.'||R.object_name||' to '||p_readonly;
+   END LOOP;
+   FOR R IN (SELECT owner, object_name FROM all_objects WHERE object_type in('TABLE', 'VIEW') and owner=p_owner) LOOP
+      EXECUTE IMMEDIATE 'create synonym '||p_readonly||'.'||R.object_name||' for '||R.owner||'."'||R.object_name||'"';
+   END LOOP;
+   FOR R IN (SELECT owner, object_name from all_objects where object_type in('FUNCTION', 'PROCEDURE') and owner=p_owner) LOOP
+      execute immediate 'create synonym '||p_readonly||'.'||R.object_name||' for '||R.owner||'."'||R.object_name||'"';
+   END LOOP;
+END;
+
+---------------------dba_users ( to check users with there table spaces and temp spaces) ----------------------------------------------------------------
+select * from dba_users 
+
+---------------------  Quick recap  ----------------------------------------------------------------
+
+
+SELECT * FROM
+(SELECT
+    sql_fulltext,
+    sql_id,
+    child_number,
+    disk_reads,
+    executions,
+    first_load_time,
+    last_load_time
+FROM    v$sql
+ORDER BY elapsed_time DESC)
+WHERE ROWNUM < 10;
+
+
+
+select * from
+(
+select session_id, session_serial#, count(*)
+from v$active_session_history
+where session_state= 'ON CPU' and
+ sample_time > sysdate - interval '5' minute
+group by session_id, session_serial#
+order by count(*) desc
+)
+where rownum <= 10;
+
+
+select  serial#,
+ username,
+ osuser,
+ machine,
+ program,
+ resource_consumer_group,
+ client_info
+from v$session where sid=&sid;
+
+select distinct sql_id, session_serial# 
+from v$active_session_history
+where session_id=&sid and sample_time >  sysdate - interval '5' minute;
+
+
+select sql_text from v$sql where sql_id='&sqlid';
+
+------------------------------

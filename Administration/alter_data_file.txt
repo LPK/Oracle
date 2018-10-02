@@ -1,0 +1,4 @@
+
+select FILE_NAME, bytes/(1024*1024) from dba_data_files where TABLESPACE_NAME ='SYSTEM';
+
+alter database datafile '/u01/oradata/system01.dbf' resize 5G;

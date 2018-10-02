@@ -1,0 +1,55 @@
+------------------------Clear partitions------------------------------------------------------------------------
+--check unusable partitions------------------------------------------------------------------------
+
+select ip.index_name, ip.partition_name, ip.status 
+from user_indexes i
+     join user_ind_partitions ip
+      on  ip.index_name = i.index_name
+where   ip.status = 'UNUSABLE';
+
+--get tables partitions
+select table_owner,table_name,BLOCKS,empty_blocks,num_rows,sample_size,partition_name,high_value
+from ALL_TAB_PARTITIONS where table_name = 'V_FIRST_RECHARGETEMP'
+order by 5 desc;
+
+--drop partition if(records count is Not 0)
+alter table V_FIRST_RECHARGETEMP truncate partition SYS_P3170;
+
+--drop partition if(records count is 0)
+alter table V_FIRST_RECHARGETEMP drop partition SYS_P3170;
+
+--rebuild index
+alter index <>  rebuild 
+
+Alter index rebuild online:  During a online index rebuild, Oracle will make a snapshot log on the target table to hold DML activity, read the table in a full-table scan (read consistent), build the new index and then apply the changes from the snapshot log after the index has been rebuilt.  You can use NOLOGGING and PARALLEL with the online rebuild:
+alter index my_idx rebuild online parallel 63 nologging; 
+alter index my_idx noparallel;
+alter index my_idx logging;
+
+Alter index rebuild:  During a "regular" index rebuild, an exclusive lock occurs as the existing index is read.  Hence, this command is designed for scheduled downtime periods where there is no DML activity.  However, this operation can be parallelized and run in NOLOGGING mode:
+alter index my_idx rebuild parallel 63 nologging; 
+alter index my_idx noparallel;
+alter index my_idx logging;
+
+--rebuild the gloal index with partitions (No need and take time)
+alter table indexname drop partition y05q1 update global indexes;
+
+--rebuild the gloal index once partitions is deleted(seperate)  
+alter index indexname rebuild partition SYS_P3170;
+
+--select specific partition data
+SELECT distinct TRUNC(BURNDATE,'DD') FROM VOUCHEREXT_ARCHIVE PARTITION (VOUCHEREXT_ARCHIVE_P2);  
+
+-drsp sepecifc partition with where clause 
+alter table table_name drop partition for (TO_DATE('some date','date format'))
+
+--get a specific record in which partition
+ SELECT dbms_rowid.rowid_object(ROWID) data_object_id
+   FROM VOUCHEREXT_ARCHIVE
+   WHERE TRUNC(BURNDATE,'DDD') BETWEEN '01-JAN-16' and '01-JAN-17';
+   
+   select * from user_objects where data_object_id = 546512;
+   
+   SELECT  MAX(BURNDATE) FROM VOUCHEREXT_ARCHIVE PARTITION (SYS_P8727) where trunc(BURNDATE,'DDD') <'01-JAN-17';  
+   
+   delete FROM VOUCHEREXT_ARCHIVE PARTITION (SYS_P8727) where trunc(BURNDATE,'DDD') <'01-JAN-17';

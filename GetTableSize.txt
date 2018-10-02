@@ -1,0 +1,59 @@
+SELECT round(SUM (bytes) / 1024 / 1024  ) size_in_MB , segment_name, owner
+    FROM dba_segments
+   WHERE     segment_type = 'TABLE'
+         AND owner NOT IN ('SYS',
+                           'SYSTEM',
+                           'OUTLN',
+                           'XDB',
+                           'WMSYS',
+                           'OJVMSYS','MDSYS','APEX_040200','DEV_VERIDATA','DEV_OPSS','CTXSYS','DBSNMP','ORDDATA','DVSYS','ORDSYS','ORDSYS','SCOTT')
+GROUP BY segment_name, owner
+ORDER BY 1 desc;
+
+ 
+ select df.tablespace_name "Tablespace",
+totalusedspace / 1024  "Used GB",
+(df.totalspace - tu.totalusedspace) "Free MB",
+df.totalspace / 1024 "Total GB",
+round(100 * ( (df.totalspace - tu.totalusedspace)/ df.totalspace))
+"Pct. Free"
+from
+(select tablespace_name,
+round(sum(bytes) / 1048576) TotalSpace
+from dba_data_files 
+group by tablespace_name) df,
+(select round(sum(bytes)/(1024*1024)) totalusedspace, tablespace_name
+from dba_segments 
+group by tablespace_name) tu
+where df.tablespace_name = tu.tablespace_name and df.tablespace_name in('TS_V_HUTCH_SANDI_CMS','TS_V_UTCH_SANDI_IND','TS_V_ HUTCH_SANDI','TS_V_HUTCH_SANDI_CMS_IND');
+
+-----------------------Table size / index size ---------------------------
+
+SELECT round(SUM (bytes) / 1024 / 1024  ) size_in_MB , SEGMENT_NAME 
+    FROM user_segments
+   WHERE     segment_type = 'TABLE'         
+GROUP BY segment_name 
+ORDER BY 1 desc;
+
+
+ALTER INDEX index_name ON table_name DISABLE;
+
+Found on Spiceworks: https://community.spiceworks.com/how_to/144433-how-to-rename-drop-enable-and-disable-an-index-in-oracle?utm_source=copy_paste&utm_campaign=growth
+SELECT round(SUM (bytes) / 1024 / 1024  ) size_in_MB , SEGMENT_NAME 
+    FROM user_segments
+   WHERE     segment_type = 'TABLE'         
+GROUP BY segment_name 
+ORDER BY 1 desc;
+
+SELECT round(SUM (bytes) / 1024 / 1024  ) size_in_MB , SEGMENT_NAME 
+    FROM user_segments
+   WHERE     segment_type = 'INDEX'         
+GROUP BY segment_name 
+ORDER BY 1 desc;
+
+select * from all_indexes
+
+select * from v$session where username = 'APP_DMS';  
+ 
+desc V$SQL
+select * from V$SQL where sql_id = '6y7jkt3u4d40d';

@@ -1,0 +1,88 @@
+DECLARE
+   p_from                                            VARCHAR2 (2000) := 'xyz@xyz.com';
+   p_to                                              VARCHAR2 (2000) := 'xyz@xyz.com';
+   p_subject                                         VARCHAR2 (2000) := 'Test Mail';
+   p_text_msg                                        VARCHAR2 (2000);
+   p_smtp_host                                       VARCHAR2 (2000) := 'localhost';
+   p_smtp_port                                       NUMBER := 25;
+   p_html_msg                                        VARCHAR2 (4000);
+   l_mail_conn                                       UTL_SMTP.connection;
+   l_boundary                                        VARCHAR2 (50) := '----=*#abc1234321cba#*=';
+BEGIN
+      p_html_msg                                              :=
+            'Hi All, <br><br> Please Find below the Exception Details.<br>
+                    <hr>
+                    <table>
+                    <tr>
+                    <th align="left">Source System  </th>
+                    <th align="center"> : </th>
+                    <td>'
+         || 'p_source_system' -- Column value need to Print 
+         || '</td>
+                    </tr>
+                    <tr>
+                    <th align="left">Error Type</th>
+                    <th align="center"> : </th>
+                    <td> <font color="#FF0000">'
+         || 'ERROR/WARNING/SUCCESS' -- Column value need to Print 
+         || '</font> </td>
+                    </tr>
+                    <tr>
+                    <th align="left">Reason</th>
+                    <th align="center"> : </th>
+                    <td>'
+         || 'p_reason' -- Column value need to Print 
+         || '</td>
+                    </tr>
+                    </table>
+                    <hr>
+                    <table>
+                    <tr>
+                    <th align="left">Additional Information</th>
+                    <th align="center"> : </th>
+                    <td>'
+         || 'p_additional_information' -- Column value need to Print 
+         || '</td>
+                    </tr>
+                    </table>
+                    <hr> <br><br>
+                    Thanks,<br>';
+
+
+   l_mail_conn                                              := UTL_SMTP.open_connection (p_smtp_host, p_smtp_port);
+   UTL_SMTP.helo (l_mail_conn, p_smtp_host);
+   UTL_SMTP.mail (l_mail_conn, p_from);
+   UTL_SMTP.rcpt (l_mail_conn, p_to);
+   UTL_SMTP.open_data (l_mail_conn);
+   UTL_SMTP.write_data (l_mail_conn, 'Date: ' || TO_CHAR (SYSDATE, 'DD-MON-YYYY HH24:MI:SS') || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn, 'To: ' || p_to || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn, 'From: ' || p_from || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn, 'Subject: ' || p_subject || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn, 'Reply-To: ' || p_from || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn, 'MIME-Version: 1.0' || UTL_TCP.crlf);
+   UTL_SMTP.write_data (l_mail_conn
+                      , 'Content-Type: multipart/alternative; boundary="' || l_boundary || '"' || UTL_TCP.crlf
+                        || UTL_TCP.crlf
+                       );
+
+   IF p_text_msg IS NOT NULL
+   THEN
+      UTL_SMTP.write_data (l_mail_conn, '--' || l_boundary || UTL_TCP.crlf);
+      UTL_SMTP.write_data (l_mail_conn, 'Content-Type: text/plain; charset="iso-8859-1"' || UTL_TCP.crlf || UTL_TCP.crlf);
+      UTL_SMTP.write_data (l_mail_conn, p_text_msg);
+      UTL_SMTP.write_data (l_mail_conn, UTL_TCP.crlf || UTL_TCP.crlf);
+   END IF;
+
+   IF p_html_msg IS NOT NULL
+   THEN
+      UTL_SMTP.write_data (l_mail_conn, '--' || l_boundary || UTL_TCP.crlf);
+      UTL_SMTP.write_data (l_mail_conn, 'Content-Type: text/html; charset="iso-8859-1"' || UTL_TCP.crlf || UTL_TCP.crlf);
+      UTL_SMTP.write_data (l_mail_conn, p_html_msg);
+      UTL_SMTP.write_data (l_mail_conn, UTL_TCP.crlf || UTL_TCP.crlf);
+   END IF;
+
+   UTL_SMTP.write_data (l_mail_conn, '--' || l_boundary || '--' || UTL_TCP.crlf);
+   UTL_SMTP.close_data (l_mail_conn);
+   UTL_SMTP.quit (l_mail_conn);
+END;
+/

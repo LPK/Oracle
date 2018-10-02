@@ -1,0 +1,115 @@
+BEGIN
+   dbms_scheduler.run_job('START_RET_DATA_PREPARE_PROCESS',false);
+END;
+ 
+ --User wise process 
+select
+   jr.job,
+   s.username,
+   s.sid,
+   s.serial#,
+   p.spid,
+   s.lockwait,
+   s.logon_time
+from 
+   dba_jobs_running jr,
+   v$session s,
+   v$process p
+where
+   jr.sid = s.sid
+and
+   s.paddr = p.addr
+order by
+   jr.job
+;
+ 
+
+-- *************************************************
+-- get running jobs
+
+select
+   rj.job_name,
+   s.username,
+   s.sid,
+   s.serial#,
+   p.spid,
+   s.lockwait,
+   s.logon_time
+from 
+   dba_scheduler_running_jobs rj,
+   v$session s,
+   v$process p
+where
+   rj.session_id = s.sid
+and
+   s.paddr = p.addr
+order by
+   rj.job_name
+;
+--SID,SERIAL
+alter system kill session '47,12337';
+
+--max cpu take jobs
+select 
+   ss.username,
+   se.SID,
+   VALUE/100 cpu_usage_seconds
+from
+   v$session ss, 
+   v$sesstat se, 
+   v$statname sn
+where
+   se.STATISTIC# = sn.STATISTIC#
+and
+   NAME like '%CPU used by this session%'
+and
+   se.SID = ss.SID
+and 
+   ss.status='ACTIVE'
+and 
+   ss.username is not null
+order by VALUE desc;
+
+
+
+---Lock objects 
+select
+(select username || ' - ' || osuser from v$session where sid=a.sid) blocker,
+a.sid || ', ' ||
+(select serial# from v$session where sid=a.sid) sid_serial,
+' is blocking ',
+(select username || ' - ' || osuser from v$session where sid=b.sid) blockee,
+b.sid || ', ' ||
+(select serial# from v$session where sid=b.sid) sid_serial
+from v$lock a, v$lock b
+where a.block = 1
+and b.request > 0
+and a.id1 = b.id1
+and a.id2 = b.id2;
+
+ 
+
+
+--run a job
+  BEGIN
+   dbms_scheduler.run_job('IMP_SC_ACTIVATION',false);
+END;
+
+--stop jop
+  BEGIN
+   dbms_scheduler.stop_job('IMP_SC_ACTIVATION',false);
+END;
+
+
+=======================================================================
+ For dbms_job jobs:
+
+alter system set job_queue_processes=0 scope=both;
+For some maintenance may be better/ You may normally want to have some jobs offline and don't want to put them online when you'll be done with maintenance.
+
+== For dbms_scheduler jobs:
+
+exec dbms_scheduler.set_scheduler_attribute('SCHEDULER_DISABLED','TRUE');
+and after maintenance is complete:
+
+exec dbms_scheduler.set_scheduler_attribute('SCHEDULER_DISABLED','FALSE');

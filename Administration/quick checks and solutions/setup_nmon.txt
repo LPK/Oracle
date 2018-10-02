@@ -1,0 +1,131 @@
+--check the linux version 
+cat /etc/os-release
+lsb_release -a
+hostnamectl
+
+-- form remmote repo
+cd /usr/bin
+wget http://sourceforge.net/projects/nmon/files/nmon_x86_64_rhel6
+chmod +x nmon_x86_64_rhel6
+ln -s nmon_x86_64_rhel6 nmon
+export NMON=cmt      -- to view the default order 
+nmon
+
+--install package 
+yum install nmon
+
+
+-- view non 
+nmon
+
+c     CPUs
+m   Memory
+t      Top processes
+V    Virtual memory
+d     Disks
+n     Network adapters
+j      Filesystems
+N    NFS
+k     Kernel
+
+h     Help screens
+v     Verbose mode
+q     Exit nmon
+
+--set the frequence  to capture the data 
+=====================Calculation ===================================================================
+--https://brocadeblue.blogspot.com/2012/10/calculating-interval-seconds-and.html
+
+Calculating interval in seconds and snapshots for nmon
+by Brocade Blue 
+I am tired of poring thru geek-blogs looking for a decent nmon calculation to use when configuring nmon report collection on Linux hosts.
+ So, I did what I had to do. I am going to provide you the method used to calculate the time interval between reports [ the -s option] and the snapshots count [ -c]
+
+Lets take an example from one of my crontabs
+
+00 21 9 5 *  /usr/local/bin/nmon -f -t -r "Performance Report:Brocade" -s 300 -c 288 -m /var/nmon_reports
+
+So, what does this mean in English?
+
+/usr/local/bin/nmon = this is where the nmon is located and will run from there
+
+
+-f =spreadsheet output format [note: default -s300 -c288] or in simple terms it means you want the data saved to a file and not displayed on the screen
+
+-t = spreadsheet includes top processes
+
+
+-r "Performance Report:Brocade" = goes into spreadsheet file [default hostname unless specified]
+
+
+-s 300 = you want to capture data every 300 seconds (5 minutes)
+
+-c 288 = you want 288 points or snap shots
+
+
+-m /var/nmon_reports/= nmon changes to this directory to write the reports
+
+Ok, so how do we get the interval and snapshots value? What are the best intervals to use? Well, this really depends on you and how smart you are at looking into your head to picture the final graphs. Do you want a pretty graphs presentable for end user or a hefty report that will satisfy your queries? I suggest you go for the former. If you go for a nice interval of 10-30 minutes your graphs will look pretty presentable. Plus your snapshots won't be fighting over each other to write into your report, so there's a nice amount of white space in your graph. However, I am not saying you should not use short intervals, you may use them-but only to collect nmon for short period of time [i.e less than 5 hours ]
+
+Generally, nmon uses seconds as interval so I recommend you to use seconds in your calculation. Lets start with the first example. If you want a report to run every 15 minutes for 1 day, you get the 1 day value in seconds
+
+1 day = 24 hours x 60 mins x 60 seconds = 86 400 seconds
+
+Then, you get the interval time period of 15 mins in seconds
+
+15 mins = 60 seconds x 15 mins = 900 seconds
+
+Now, you know your interval is 900 seconds, so the value for your "-s" is 900
+
+-s = 900
+
+How do you get your snapshot value?
+
+86 400/900 = 96 snapshots
+
+So your "-c" value is 96
+
+Answer: -s 900 -c 96
+
+Lets use the same math to get a calculation for nmon to run, say every 15 seconds for 1 hour
+
+1 hour = 60 mins x 60 seconds = 3600 seconds
+15 seconds = 15 seconds
+-s = 15
+-c = 3600/15 = 240
+
+Answer : -s 15 -c 240
+
+Because I feel like giving today, I'll provide another example to collect nmon report for 6 days with 30 mins interval
+
+6 days = 6 days x 24 hours x 60 mins x 60 seconds = 518 400
+30 mins interval = 30 x 60 seconds = 1800 seconds
+-s = 1800
+-c = 518 400/1800 = 288 snapshots
+
+Answer : -s 1800 -c 288 
+
+To download nmon for linux, go here:
+http://nmon.sourceforge.net/pmwiki.php?n=Main.HomePage
+
+To download nmon analyzer, go here:
+http://www.ibm.com/developerworks/wikis/display/Wikiptype/nmonanalyser
+
+=============================================================================================================
+
+
+
+
+--down load nmon analyzer 
+
+https://www.ibm.com/developerworks/aix/library/au-nmon_analyser/index.html
+
+convert the file to csv 
+
+---- kil the process 
+
+kill -9 3139
+
+---- find the process 
+
+ps aux | grep mysqld

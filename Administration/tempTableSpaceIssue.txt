@@ -1,0 +1,77 @@
+1. Identify temporary datafile details :
+SQL> select file_name , TABLESPACE_NAME from DBA_TEMP_FILES;
+—–
+/u01/oradata/VIS11i/temp01.dbf   TEMP
+
+2. Check if there is any space available in temporary tablespace (segment)
+
+SQL> SELECT   A.tablespace_name tablespace, D.mb_total,
+SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_used,
+D.mb_total – SUM (A.used_blocks * D.block_size) / 1024 / 1024 mb_free
+FROM     v$sort_segment A,
+(
+SELECT   B.name, C.block_size, SUM (C.bytes) / 1024 / 1024 mb_total
+FROM     v$tablespace B, v$tempfile C
+WHERE    B.ts#= C.ts#
+GROUP BY B.name, C.block_size
+) D
+WHERE    A.tablespace_name = D.name
+GROUP by A.tablespace_name, D.mb_total;
+
+—-
+output like
+
+TABLESPACE                        MB_TOTAL    MB_USED    MB_FREE
+——————————- ———- ———- ———-
+TEMP                                  2548         2536       12
+
+(in above case out of 2 GB only 12 MB is free)
+
+.
+
+3.  Temporary fix
+
+a) Resize temporary file as 
+SQL> ALTER DATABASE TEMPFILE ‘/u01/oradata/VIS11i/temp01.dbf’ RESIZE 3072M;
+
+or
+
+b) Add temp datafile to temporary tablespace as
+
+SQL> ALTER TABLESPACE TEMP ADD TEMPFILE ‘/u01/oradata/VIS11i/temp02.dbf’
+SIZE 1024M REUSE AUTOEXTEND ON NEXT 50M  MAXSIZE 1024M;
+
+.
+
+Root Cause Analysis
+
+1.  Identify temp segment usages per session
+
+—
+— Temp segment usage per session.
+—
+SQL> SELECT   S.sid || ‘,’ || S.serial# sid_serial, S.username, S.osuser, P.spid, S.module,
+P.program, SUM (T.blocks) * TBS.block_size / 1024 / 1024 mb_used, T.tablespace,
+COUNT(*) statements
+FROM     v$sort_usage T, v$session S, dba_tablespaces TBS, v$process P
+WHERE    T.session_addr = S.saddr
+AND      S.paddr = P.addr
+AND      T.tablespace = TBS.tablespace_name
+GROUP BY S.sid, S.serial#, S.username, S.osuser, P.spid, S.module,
+P.program, TBS.block_size, T.tablespace
+ORDER BY mb_used;
+
+2. Identify temp segment usages per statement
+—
+— Temp segment usage per statement.
+—
+SQL> SELECT  S.sid || ‘,’ || S.serial# sid_serial, S.username, Q.hash_value, Q.sql_text,
+T.blocks * TBS.block_size / 1024 / 1024 mb_used, T.tablespace
+FROM    v$sort_usage T, v$session S, v$sqlarea Q, dba_tablespaces TBS
+WHERE   T.session_addr = S.saddr
+AND     T.sqladdr = Q.address
+AND     T.tablespace = TBS.tablespace_name
+ORDER BY mb_used;
+Depending on outcome of temp segment usage per session and per statement focus on problematic session/statement.
+
+.
